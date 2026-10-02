@@ -1,0 +1,6 @@
+CadTech Solid Joint Face Fix
+- Web/vertical endpoints meeting top or bottom chords are trimmed to the physical chord face.
+- Generic solid-member end extension removed from the 3D viewer.
+- Truss-to-truss receiver-plane clipping retained.
+- Free chord/eave ends are preserved.
+- Viewer and OBJ export use the corrected connection geometry.
