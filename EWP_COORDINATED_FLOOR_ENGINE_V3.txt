@@ -1,0 +1,13 @@
+CadTech EWP Coordinated Floor Engine v3
+
+Added to the existing Roof/Truss + EWP Floor Framing PRO package:
+- Regenerates joist lines from the floor boundary and current spacing.
+- Cuts/segments joists at rectangular floor openings instead of leaving full joists through voids.
+- Creates paired LVL opening headers and doubled trimmer records around each opening.
+- Keeps four perimeter rim-board members as explicit framing records.
+- Rebuilds framingMembers as one coordinated floor assembly.
+- Adds cut-joist/opening-frame regeneration audit data.
+- Adds framing geometry CSV export with axis, position, start/end, span and ply data.
+- Existing roof/truss, wall, EWP schedules, whole-building coordination and load-path tools are retained.
+
+Engineering note: manufacturer-specific EWP span, hole, bearing, hanger and connection capacities remain DESIGN REQUIRED until validated product data is loaded.

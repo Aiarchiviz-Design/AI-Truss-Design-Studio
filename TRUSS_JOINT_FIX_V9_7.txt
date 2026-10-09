@@ -1,0 +1,19 @@
+CadTech Truss Joint Fix V9.7  (exact face-to-face joints)
+=========================================================
+Problem (marked on the screenshot): ridge showed a gap/notch with the king post poking through,
+heels had spikes, overlapping webs and a BC that did not meet the heel stub.
+Root cause: per-end cut offsets were computed in a frame whose side sign was mirrored for member START ends,
+so one rafter was cut correctly and the other was not; the king post was only given a flat cut.
+
+Fix (app/connection-geometry.js): every timber is now an exact convex outline in the truss plane,
+clipped by the real faces of its neighbours, then extruded:
+- Ridge / any chord kink: zero-gap mitre through the two facing-edge intersections.
+- Web ends: sawn to the face of every chord that carries them (king post under the ridge gets the pointed V seat).
+- Heel: BC end flush with the outside face of the heel stub; stub sits on the BC top face and under the rafter face;
+  the first diagonal butts the stub and the rafter face. Rafter tail continues straight (no kink).
+- Web-to-web at a node: steeper web wins, the other butts on its side face (mitre when equally steep).
+- Collinear chord splices / rafter-overhang stay continuous. Analytical nodes are never moved.
+- Truss-to-truss receiver clipping still works (applied as a plane clip to the same outline).
+- Viewer and OBJ export both use memberSolid() so the export matches the screen.
+Tests: node app/test-joint-solids-v97.mjs  (no overlaps, zero-gap ridge, seated heels across 6 web styles x 3 profiles)
+Not a connector-plate design: geometry only.

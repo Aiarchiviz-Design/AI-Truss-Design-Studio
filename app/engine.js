@@ -20,9 +20,14 @@ export function geometry(span,rise,apex,n,pattern,extras=[]){
  return {nodes,members,top,bottom,xs,supports,fixed,n,pattern,span,rise,apex};
 }
 function solve(K,F){const n=F.length,A=K.map((r,i)=>[...r,F[i]]);for(let k=0;k<n;k++){let p=k;for(let i=k+1;i<n;i++)if(Math.abs(A[i][k])>Math.abs(A[p][k]))p=i;if(Math.abs(A[p][k])<1e-8)throw Error('Unstable truss: stiffness matrix is singular.');[A[k],A[p]]=[A[p],A[k]];for(let i=k+1;i<n;i++){const f=A[i][k]/A[k][k];for(let j=k+1;j<=n;j++)A[i][j]-=f*A[k][j];A[i][k]=0;}}const u=Array(n).fill(0);for(let i=n-1;i>=0;i--){let v=A[i][n];for(let j=i+1;j<n;j++)v-=A[i][j]*u[j];u[i]=v/A[i][i];}return u;}
-export function analyze(g,sections,pressure,deadFactor=1){
+export function analyze(g,sections,pressure,deadFactor=1,points=[]){
  const size=g.nodes.length*2,K=Array.from({length:size},()=>Array(size).fill(0)),F=Array(size).fill(0),E=sections.top.E||200000;
  for(let i=0;i<g.top.length;i++){const trib=((g.xs[i]- (g.xs[i-1]??g.xs[i]))+((g.xs[i+1]??g.xs[i])-g.xs[i]))/2;F[g.top[i]*2+1]-=pressure*trib*1000;}
+ // V9.9.8: concentrated loads (e.g. reactions of jacks framing into a girder): x in m along the truss, P in N (downward +),
+ // shared linearly between the two top-chord nodes that bracket x.
+ for(const pt of points||[]){const P=Number(pt.P)||0;if(!P)continue;const xs=g.xs;let i=0;while(i<xs.length-2&&xs[i+1]<pt.x)i++;
+  if(pt.x<=xs[0]){F[g.top[0]*2+1]-=P;continue;}if(pt.x>=xs.at(-1)){F[g.top.at(-1)*2+1]-=P;continue;}
+  const s=(pt.x-xs[i])/Math.max(xs[i+1]-xs[i],1e-9);F[g.top[i]*2+1]-=P*(1-s);F[g.top[i+1]*2+1]-=P*s;}
  const vectors=g.members.map(m=>{const s=sections[m.role],a=g.nodes[m.a],b=g.nodes[m.b],c=(b[0]-a[0])/m.L,h=(b[1]-a[1])/m.L,v=[-c,-h,c,h],ids=[m.a*2,m.a*2+1,m.b*2,m.b*2+1];for(let i=0;i<4;i++)for(let j=0;j<4;j++)K[ids[i]][ids[j]]+=E*s.A/m.L*v[i]*v[j];const w=s.kgm*m.L/1000*9.80665*deadFactor/2;F[m.a*2+1]-=w;F[m.b*2+1]-=w;return {v,ids};});
  const free=Array.from({length:size},(_,i)=>i).filter(i=>!g.fixed.includes(i)),sol=solve(free.map(i=>free.map(j=>K[i][j])),free.map(i=>F[i])),u=Array(size).fill(0);free.forEach((k,i)=>u[k]=sol[i]);
  const forces=g.members.map((m,i)=>E*sections[m.role].A/m.L*vectors[i].v.reduce((s,v,j)=>s+v*u[vectors[i].ids[j]],0));

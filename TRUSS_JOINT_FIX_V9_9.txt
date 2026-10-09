@@ -1,0 +1,126 @@
+CadTech Truss Joint Fix V9.9  (flush connections between perpendicular trusses)
+==============================================================================
+Problem: some trusses ran THROUGH perpendicular trusses (e.g. front jacks through a side jack, stepdown through front
+jacks, hip carrier through a side jack) instead of stopping at the side face.
+Causes (app/roof.js):
+ 1. The receiver search only looked at Girders and Hip carriers, so a truss ending on a side jack / front jack /
+    stepdown / common got NO connection and was never cut.
+ 2. The side-jack "side-flush" rule kept the lowest end; when that lowest end was the end touching the receiver it
+    could not tell which side to keep.
+ 3. Only one connection per truss was allowed, so a truss ending on a receiver at BOTH ends was cut at one end only.
+Fix:
+ - New generic "end-flush" connection: any truss end that lands on the body of a non-parallel truss is cut flush to
+   that truss's near face. Corner contacts (both ends meet, e.g. hips/valleys) are left alone.
+ - Side-flush keeps the end FARTHEST from the receiver when the lowest end is the touching one.
+ - Up to two connections per truss (one per end), never two at the same point.
+Tests: node app/test-end-flush-v99.mjs (new). Example roof TRUSSES.dxf: trusses passing through a perpendicular truss 20 -> 9
+(remaining: corner/overhang crossings between full trusses and the diagonal hip-carrier case, where a diagonal cut leaves
+up to ~15 mm of corner overlap).
+Cache-busting bumped (connection-geometry v13, roof v5). Hard-refresh (Ctrl+F5).
+
+V9.9.1 - trusses still not reaching their perpendicular trusses
+ 1. A truss that CARRIES other trusses was being cut by them. Example: side jack SJ17 carries front jacks FJ12-FJ16, but
+    the side-flush rule also trimmed SJ17 at FJ12/FJ13, so it stopped about 0.6 m short of common truss C07. The rule now
+    skips a receiver whose own end lands on this truss (that truss is the one that gets cut, not this one).
+ 2. A jack whose raised end stops short of a perpendicular truss (SJ14 ended 423 mm before front jack FJ17) is extended
+    along its own slope to that truss, up to 0.6 m and only if the height meets within 120 mm, then connected flush.
+    The extension is recorded as t.extendedEnd (mm).
+Tests: test-end-flush-v99.mjs now also covers SJ17 and SJ14. Cache-busting: roof.js v6.
+Still open: corner/overhang crossings between full trusses (C07/C08) and the diagonal hip-carrier corner overlap (~15 mm).
+
+V9.9.2 - full-width end stud where a truss butts a perpendicular truss
+ Problem: the connections were right, but the vertical stud at the cut end was a thin sliver. The end node lies on the
+ receiver's centre line, so cutting at the receiver's near face removed most of the stud (about 25 mm of 89 mm left).
+ Fix (app/connection-geometry.js, endStudAdjust): the end stud is moved inward until its OUTSIDE face is flush with the
+ receiver face and it keeps its full width; its top follows the top-chord underside. The diagonal web that lands on the
+ same node is trimmed back to the stud's inner face so they do not overlap. Only true studs (both nodes on the same
+ X) are moved; steep diagonals are not treated as studs. Top/bottom chords still run to the receiver face.
+ Test: test-end-flush-v99.mjs checks every end stud at a flush cut is full width (67 in the example roof; fails on V9.9.1).
+ Note: the manufacturing cut list (memberCutProfile) is unchanged - this affects the 3D solids.
+ Cache-busting: connection-geometry v14.
+
+V9.9.3 - no overhang where two eaves meet
+ Problem: at re-entrant eave corners (and where an eave end meets a perpendicular truss) the overhang tails of the two
+ eaves crossed each other or ran through the neighbouring truss.
+ Fix: roof.js records, for every eave end, what its tail would hit along the end direction in plan (t.eaveHits: another
+ truss body, or another truss's tail). advanced.js templateMembers() skips the overhang at that end when the hit lies within
+ the tail length (the other truss's tail length for tail-to-tail hits; hip carriers use their 45-degree plan factor).
+ Both tails of a crossing pair are removed. Ordinary eaves keep their overhang.
+ Example roof TRUSSES.dxf: 15 of 101 overhangs removed (all at eave intersections), 0 trusses run through a perpendicular
+ truss (was 9). Simple gable/hip roof (nw-6th-st.obj): none removed.
+ Test: node app/test-eave-clash-v99.mjs. Overhang is recomputed when templates are rebuilt / roof regenerated.
+ Cache-busting: roof v7, advanced v4.
+
+V9.9.4 - wood take-off
+ The roof app had no usable wood take-off: the PDF only listed pieces per role and every chord appeared as many short
+ panel-length pieces. New (app/takeoff.js):
+  * "Wood take-off" button in the header (next to Export model): table by section with pieces, cut lin ft, nominal board
+    feet, boards to order by stock length (8-24 ft), spliced pieces and yield, plus download links.
+  * Export dialog now also contains wood-takeoff-summary.csv, wood-cutlist.csv (every board: truss, mark, role, section,
+    plies, qty, cut length ft-in and mm, stock length, BF, note) and wood-takeoff-by-truss.csv.
+  * PDF report: the old minimal table is replaced by a full WOOD TAKE-OFF page (totals, by section, stock boards, by role,
+    by truss).
+ How it counts:
+  * Collinear top-chord / overhang segments (and bottom-chord segments) that share nodes and the same section are merged
+    into ONE continuous board; the overhang is part of its rafter. Webs are single boards.
+  * Length = long-point cut length of the actual cut solid (so the trimmed web / stud / flush-cut ends are included).
+  * Plies multiply the quantity (2-ply girders = 2 boards). Section comes from the analysis (sectionName); trusses not yet
+    analyzed use the template 2x4 and the panel says so.
+  * Ordering: first-fit-decreasing into 8,10,12,14,16,18,20,24 ft stock with 1/8 in kerf; a chord longer than 24 ft is a
+    spliced piece (24 ft board + remainder). Board feet are nominal (2x4 = 0.667 BF/ft). Add your own waste allowance.
+ Example roof TRUSSES.dxf (template 2x4): 1476 members -> 1010 boards, 4430 lin ft, 2953 BF.
+ Test: node app/test-takeoff-v99.mjs. Cache-busting: connection-geometry v15, report v4, takeoff v1.
+
+V9.9.5 - truss drawings in the Design Report in shop-drawing style (app/truss-drawing.js)
+ Reference: attic/gable truss shop drawings (lumber with plates, dimension strings, call-outs, pitch marker, cut marks).
+ Each truss page now has:
+  * Lumber drawn from the SAME cut outlines as the 3D model (flush heel/ridge cuts, seated webs, full-width end studs).
+  * Connector plates drawn at every real joint (not at continuous chord points) - schematic location only, size/orientation
+    by plate design.
+  * Dimension method: bottom-chord panel points; overhang | bearing span | overhang; OVERALL width; overall height and end
+    heights; arrowheads and extension lines; feet-inches to 1/16 in (or metric when the report is exported metric).
+  * Call-outs in a row above the truss (TOP CHORD / WEBS / BOTTOM CHORD with section, plies and the project lumber grade)
+    with vertical leaders; pitch triangle (rise/12); title "G01 - GIRDER TRUSS - span - pitch" underlined like the references.
+  * Member marks (TC1, BC1, W1...) on the drawing that tie to a board-level member schedule below it: mark, role, section,
+    plies, cut length (long point, chord segments merged, overhang included), cut angles A/B from square, force, ratio and
+    governing case (worst segment of a merged chord). Marks, lengths and board counts are identical to the wood take-off.
+  * The compact two-column design information table leaves room for the drawing; flat trusses get a shorter drawing area.
+ Test: node app/test-truss-drawing-v99.mjs (82 trusses drawn; schedule = take-off boards).
+ Cache-busting: connection-geometry v16, takeoff v2, truss-drawing v2, report v5.
+
+V9.9.6 - connector plates smaller than the wood (truss-drawing.js)
+ Plates were sized from 1.55 x the member depth, so they stood proud of the lumber. They are now sized from the CHORD depth:
+ 78% of the chord depth across the chord and about 1.45 x the chord depth along it, so lumber shows around every plate.
+ Orientation unchanged (along the bottom chord at bottom-chord joints, along the top chord elsewhere). Still schematic only.
+ Cache-busting: truss-drawing v3.
+
+V9.9.7 - wood take-off on every truss page and up front in the Design Report
+ * Each truss page now ends with its own "WOOD TAKE-OFF - <truss>" table: boards, pieces (plies counted), cut lin ft,
+   nominal board feet and the stock lengths needed, with a truss total.
+ * The member schedule gained Stock (ft) and Nominal BF columns per board.
+ * The roof-level WOOD TAKE-OFF pages moved from the end of the PDF to right after the ROOF TRUSS LAYOUT page (page 4),
+   ahead of the truss pages. ISSUE NOTES stays last.
+ Same numbers everywhere: schedule, per-truss table, roof pages, app panel and CSVs all come from takeoff.js.
+ Cache-busting: report v6.
+
+V9.9.8 - AUTO-DESIGN: every truss ends PASS or FAIL (no more "DESIGN REQUIRED" / "REVIEW")
+ Why you saw those statuses: the old checks needed numbers the app did not have (hold-down and plate capacity default to 0, so
+ every truss said DESIGN REQUIRED), flagged long compression members for REVIEW, flagged girders "TRANSFER LOADS - reanalysis
+ required", and stopped at 3 plies / 89 mm bearing.
+ "Analyze" now designs automatically (app/autodesign.js, engineering.js, advanced.js, engine.js):
+  1 Member sizes 2x4..2x12 per chord/web group, plies 1..5 (was 3), web pattern and interior bearings (unless "End bearings only").
+  2 Jack / hip-carrier reactions are applied to the girder or carrier that carries them as NODAL LOADS (per load case, at the
+    connection point, shared between the two top-chord nodes) and the girder is re-designed - repeated until the loads stop
+    changing (chains such as jack -> hip carrier -> girder converge in a few rounds). Equilibrium verified.
+  3 Bearing: bearing length 89 -> 140 mm (5.5 in) if needed; if still short, plies are added (longer bearings are not realistic).
+  4 Uplift: hold-down requirement sized to the demand. If you enter a hold-down capacity it is used (up to 2 per bearing).
+  5 Joints: required capacity per joint stated from the largest member force. If you enter a plate capacity it is checked.
+  6 Long compression members get lateral-restraint points (<= brace trigger unbraced length) instead of "REVIEW".
+ Result per truss and for the roof: PASS or FAIL with the reason. FAIL happens when no combination up to 2x12 / 5-ply works
+ (e.g. extreme load, "End bearings only"), when an entered hold-down / plate capacity is too small, or a bearing cannot be met.
+ Shown in: Analyze results table (Result column, roof result line, failure reasons, auto-design changes), PDF summary page, each
+ truss page (DESIGN CHECK table, DESIGN RESULT line, automatic design changes, braced members, transfer table).
+ Inputs renamed: Hold-down capacity (0 = size to demand), Joint/plate capacity (0 = state requirement).
+ IMPORTANT - preliminary screening: with capacity 0 the hold-down and plate checks PASS by stating the requirement (kN) that the
+ connector must develop; the product / plate design and bracing details still need engineering verification.
+ Tests: node app/test-autodesign-v99.mjs. Cache-busting: advanced v5, engineering v2, engine v4, autodesign v1, report v7.

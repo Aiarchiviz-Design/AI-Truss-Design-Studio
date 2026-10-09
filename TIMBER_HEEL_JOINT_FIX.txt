@@ -1,0 +1,11 @@
+CadTech Timber Heel / Chord / Web Physical Joint Fix
+=====================================================
+Analytical truss panel points remain unchanged.
+Rendered/exported timber is face-trimmed at physical joints:
+- web -> top/bottom chord face
+- bottom chord -> sloping top-chord face at heel
+- top-chord peak -> one chord butts to the opposing chord face
+- collinear chord splices remain continuous
+- free/eave ends remain unchanged
+- whole secondary truss still clips to the near physical face of its receiving truss
+This is geometry/coordination logic only. Connector plate sizing and structural joint capacity remain DESIGN REQUIRED.

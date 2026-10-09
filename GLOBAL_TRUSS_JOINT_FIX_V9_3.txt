@@ -1,0 +1,10 @@
+CadTech Global Truss Joint Fix V9.3
+
+- Keeps analytical panel nodes unchanged for all internal truss joints.
+- Removes double trimming of member centerlines plus cut solids.
+- Uses physical cut profiles for web-to-top chord, web-to-bottom chord, heel BC-to-TC, and peak TC-to-TC joints.
+- Collinear chord splices remain continuous.
+- Free/eave ends remain uncut.
+- Truss-to-truss receiver-face clipping remains active.
+- Applies through the shared viewer/connection geometry path to all truss families.
+- Connector plate engineering/capacity is not inferred by geometry.

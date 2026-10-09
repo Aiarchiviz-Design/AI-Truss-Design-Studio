@@ -1,0 +1,17 @@
+CadTech / AI Truss Design Studio — EWP Floor Framing PRO
+
+Added on top of the EWP Upgrade:
+- Coordinated I-joist/EWP floor framing records
+- Joist direction and spacing stored per floor
+- Perimeter rim and end support lines
+- LVL/LSL/PSL/Glulam beam support-line coordination
+- Floor opening header + doubled trimmer framing records
+- Blocking row generation
+- Cantilever coordination field
+- Squash-block, web-stiffener and hanger coordination retained from EWP Upgrade
+- Member support/reaction placeholders
+- Floor-member load-path records to beam/wall/post/foundation endpoint
+- PRO floor-framing CSV export
+
+Engineering status:
+Geometry/detailing/coordination only. Manufacturer-specific span, hole, bearing, hanger and connection capacities remain DESIGN REQUIRED until validated product data is loaded.

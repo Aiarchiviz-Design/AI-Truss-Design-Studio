@@ -1,0 +1,10 @@
+CadTech EWP Upgrade
+- I-joist catalog with physical flange/web profile metadata
+- LVL, LSL, PSL, glulam and rim-board catalog entries
+- EWP floor-member enrichment
+- Rim board and blocking coordination
+- Squash-block and hanger schedules around floor openings
+- Web-stiffener/bearing/hole-zone review metadata
+- EWP member CSV and accessories CSV
+- EWP cross-section preview
+- Manufacturer-specific capacities intentionally remain DESIGN REQUIRED until validated data is supplied

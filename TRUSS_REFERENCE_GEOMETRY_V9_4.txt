@@ -1,0 +1,15 @@
+CadTech Truss Reference Geometry V9.4
+=====================================
+Visual target derived from the user-supplied common, hip/step-down, mono and attic truss images:
+- Top and bottom chords define the controlling truss envelope.
+- Collinear chord segments remain continuous through panel points.
+- Webs fit between chord faces; they do not pass through chords.
+- Diagonal web ends use face-matching oblique cuts.
+- Verticals/king posts seat between chord faces.
+- Both top chords use a common apex miter/cut plane at the peak.
+- At a heel the sloping top chord continues into the intended eave overhang while the bottom chord terminates at the heel joint.
+- Attic-room chords and piggyback/step-down members follow the same face-to-face fitting rules.
+- Analytical panel nodes are retained for analysis; physical timber solids are generated from joint cut planes.
+- Truss-to-truss receiver clipping remains separate from internal member fabrication cuts.
+- OBJ export uses the same physical joint-cut geometry as the 3D viewport.
+Connector plate engineering is not inferred from these geometry rules.

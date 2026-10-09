@@ -1,0 +1,6 @@
+CadTech EWP Graphical Floor Editor + Physical 3D V6
+- Retains V5 product/service coordination and all prior roof/truss/wall/whole-building features.
+- Adds member-level EWP floor editor for section, ply, position and start/end geometry.
+- Generates physical 3D framing records: I-joists carry flange/web dimensions; LVL/LSL/PSL/glulam use rectangular solid records.
+- Adds floor-level graphical member preview and physical 3D records CSV.
+- Structural PASS/FAIL remains dependent on validated manufacturer product data.

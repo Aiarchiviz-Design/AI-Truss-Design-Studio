@@ -1,0 +1,7 @@
+CadTech EWP Intelligent Floor Import + Auto Framing V8
+- Preserves V7 CAD floor editor and previous EWP/roof/truss/wall workflows.
+- Recognizes imported floor envelope, WALL bearing geometry, BEAM/LVL/GIRDER support lines, and floor openings from the existing building importer.
+- Proposes joist direction from building dimensions and recognized support geometry.
+- Auto-generates coordinated EWP floor framing and imported support records.
+- Ambiguous/missing layer information is explicitly flagged for REVIEW.
+- Product-specific capacities and structural approval remain DESIGN REQUIRED unless validated product data is loaded.

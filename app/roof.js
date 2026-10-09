@@ -36,6 +36,31 @@ export function assembleRoof(source,{tolerance=.09,heel=.25,panel=1.2,inferHips=
  if(!source.axes.some(a=>distanceToProfile(peak,[a.a,a.b])<tolerance&&distanceToProfile(corner,[a.a,a.b])<tolerance)){const d=[peak[0]-corner[0],peak[1]-corner[1]],l=Math.hypot(...d);hips.push({profile:[corner,peak],sources:[],u:d.map(x=>x/l),normal:[-d[1]/l,d[0]/l],type:'Hip carrier',full:false,proposed:true});}}
  }
  trusses.push(...hips);autoFitSideConnections(trusses,tolerance);const lowEnds=trusses.filter(t=>t.full).flatMap(t=>[t.profile[0][2],t.profile.at(-1)[2]]);const base=(lowEnds.length?Math.min(...lowEnds):Math.min(...source.axes.flatMap(a=>[a.a[2],a.b[2]])))-heel;
+ // V9.9.1: a jack/mono whose raised end stops SHORT of a perpendicular truss (source roof plane ends a little early) is
+ // extended along its own slope to that truss, so it connects instead of floating.  Max 0.6 m, and only when the slope
+ // reaches the receiver within 120 mm in height.
+ {const MAXEXT=.6,notParallel=(a,b)=>Math.abs(dot(a.u,b.u))<=.94;
+  for(const t of trusses){
+   if(t.full||t.profile.length<2)continue;
+   for(const atStart of [false,true]){
+    const P=t.profile,e=atStart?P[0]:P.at(-1),n=atStart?P[1]:P.at(-2);
+    if(e[2]-base<heel+.1)continue;   // eave end (sits on the wall plate): nothing to connect to
+    if(trusses.some(r=>r!==t&&notParallel(t,r)&&distanceToProfile(e,r.profile)<tolerance*1.8))continue;   // already touching
+    const dxy=Math.hypot(e[0]-n[0],e[1]-n[1]);if(dxy<1e-6)continue;
+    const dir=[(e[0]-n[0])/dxy,(e[1]-n[1])/dxy],slope=(e[2]-n[2])/dxy;
+    let best=null;
+    for(const r of trusses){
+     if(r===t||!notParallel(t,r))continue;
+     const hit=profilePlanIntersection([e,[e[0]+dir[0]*MAXEXT,e[1]+dir[1]*MAXEXT,e[2]]],r.profile);
+     if(!hit)continue;
+     const d=Math.hypot(hit[0]-e[0],hit[1]-e[1]);if(d<1e-4||d>MAXEXT)continue;
+     const cp=closestPointProfile([hit[0],hit[1],e[2]+slope*d],r.profile);
+     if(Math.abs(cp.point[2]-(e[2]+slope*d))>.12)continue;
+     if(!best||d<best.d)best={d,pt:[hit[0],hit[1],cp.point[2]]};
+    }
+    if(best){if(atStart)P.unshift(best.pt);else P.push(best.pt);t.extendedEnd=Math.round(best.d*1000);}
+   }
+  }}
  const counters={};trusses.sort((a,b)=>Number(b.full)-Number(a.full)||a.profile[0][0]-b.profile[0][0]||a.profile[0][1]-b.profile[0][1]);
  for(const t of trusses){const code={Common:'C',Stepdown:'SD',Girder:'G','Front jack':'FJ','Side jack':'SJ','Hip carrier':'HC'}[t.type]||'T';t.id=code+String(counters[code]=(counters[code]||0)+1).padStart(2,'0');t.base=base;t.members=frameProfile(t.profile,base,panel);t.span=Math.hypot(t.profile.at(-1)[0]-t.profile[0][0],t.profile.at(-1)[1]-t.profile[0][1]);t.height=Math.max(...t.profile.map(p=>p[2]))-base;t.ply=t.type==='Girder'?2:1;t.review=t.type==='Girder'?'Girder loads, ply count and connections unverified':t.proposed?'Inferred missing hip carrier — review location':t.connectionAdjusted?`Side connection auto-fitted ${Math.round(t.connectionGapBefore*1000)} mm to ${t.connectionTarget}; verify hanger/bearing detail`:'Geometry generated — not structurally verified';}
  for(const t of trusses){
@@ -51,16 +76,74 @@ export function assembleRoof(source,{tolerance=.09,heel=.25,panel=1.2,inferHips=
      if(other===t||!['Front jack','Girder','Hip carrier'].includes(other.type))continue;
      const hit=profilePlanIntersection(t.profile,other.profile);
      if(!hit)continue;
+     // V9.9.1: if the OTHER truss ends on this one (and this one does not end on it) this truss is the receiver -
+     // it must run past the junction, otherwise it is cut short and no longer reaches its own supports.
+     const endOn=(x,y)=>[x.profile[0],x.profile.at(-1)].some(e=>distanceToProfile(e,y.profile)<tolerance*1.8);
+     if(endOn(other,t)&&!endOn(t,other))continue;
      // Keep the eave/outboard side of the purple side jack. Lowest endpoint wins; if level,
      // the endpoint farther from the centred model origin is the eave-side endpoint.
      const e0=t.profile[0],e1=t.profile.at(-1);
      let keep=e0[2]<e1[2]-.01?e0:e1[2]<e0[2]-.01?e1:(Math.hypot(e0[0],e0[1])>=Math.hypot(e1[0],e1[1])?e0:e1);
+     // V9.9: if that end is the one touching the receiver it cannot say which side to keep -> use the far end.
+     const nrm=other.normal||[0,1],dd=q=>Math.abs((q[0]-hit[0])*nrm[0]+(q[1]-hit[1])*nrm[1]);
+     if(dd(keep)<.05)keep=dd(e0)>=dd(e1)?e0:e1;
      t.connections.push({to:other.id,gap:0,point:hit,keepPoint:[...keep],kind:'side-flush'});
     }
    }
   }
  }
- for(const t of trusses)t.connections=t.connections.sort((a,b)=>{const ak=a.kind==='side-flush'?0:1,bk=b.kind==='side-flush'?0:1;return ak-bk||a.gap-b.gap;}).slice(0,1);
+ // V9.9: ANY truss whose profile END lands on the side of a non-parallel truss (front jack on a side jack, stepdown on a
+ // front jack, hip carrier on a side jack, jack low end on a common...) is cut flush to that truss's near face instead of
+ // running through it.  Corner contacts (both ends meet) are hips/valleys and are left alone.
+ const planD=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+ for(const t of trusses){
+  for(const e of [t.profile[0],t.profile.at(-1)]){
+   for(const r of trusses){
+    if(r===t||Math.abs(dot(t.u||[1,0],r.u||[0,1]))>.94||t.connections.some(c=>c.to===r.id))continue;
+    const cp=closestPointProfile(e,r.profile);
+    if(!cp.point||cp.distance>tolerance*1.8)continue;
+    if(Math.min(planD(cp.point,r.profile[0]),planD(cp.point,r.profile.at(-1)))<.25)continue;
+    const nrm=r.normal||[0,1],dd=q=>Math.abs((q[0]-cp.point[0])*nrm[0]+(q[1]-cp.point[1])*nrm[1]);
+    const keep=t.profile.reduce((a,b)=>dd(b)>dd(a)?b:a);
+    if(dd(keep)<.15)continue;
+    t.connections.push({to:r.id,gap:cp.distance,point:[...cp.point],keepPoint:[...keep],kind:'end-flush'});
+   }
+  }
+ }
+ const PRI={'side-flush':0,'high-end':1,'end-flush':2};
+ for(const t of trusses){const keep=[];for(const c of t.connections.sort((a,b)=>(PRI[a.kind]-PRI[b.kind])||a.gap-b.gap)){if(keep.length>=2)break;if(keep.some(k=>k.to===c.to||planD(k.point,c.point)<.3))continue;keep.push(c);}t.connections=keep;}
+ // V9.9.3: where two eaves meet (re-entrant corner, eave end against another truss) the overhang tails would cross each other
+ // or run through the neighbouring truss. For every eave end record what its tail would hit, along the end direction in plan:
+ //   t.eaveHits[0|1] = [{kind:'body'|'tail', d, rd?, rf?, r}]  (d = plan distance to the hit; for 'tail' rd = the OTHER truss's tail distance)
+ // advanced.js templateMembers() drops the overhang at that end when the hit lies within the tail length.
+ {const MAXT=3,planFactor=(t,dir)=>t.type==='Hip carrier'?1/Math.max(Math.abs(dir[0]),Math.abs(dir[1]),.35):1;
+  const lowStart=t=>t.profile[0][2]<t.profile.at(-1)[2];
+  const rays=[];
+  for(const t of trusses){const P=t.profile;if(P.length<2){t.eaveHits={0:[],1:[]};continue;}t.eaveHits={0:[],1:[]};
+   for(const k of [0,1]){
+    if(!t.full&&(k===0)!==lowStart(t))continue;             // jacks only carry an overhang on their LOW end
+    const e=k?P.at(-1):P[0],n=k?P.at(-2):P[1],dx=e[0]-n[0],dy=e[1]-n[1],run=Math.hypot(dx,dy);if(run<1e-6)continue;
+    const dir=[dx/run,dy/run];rays.push({t,k,e,dir,pf:planFactor(t,dir),slope:(e[2]-n[2])/run});(t.eavePf??=[1,1])[k]=planFactor(t,dir);}}
+  const solve=(e,d,f,g)=>{const den=d[0]*g[1]-d[1]*g[0];if(Math.abs(den)<1e-9)return null;const w=[f[0]-e[0],f[1]-e[1]];return [(w[0]*g[1]-w[1]*g[0])/den,(w[0]*d[1]-w[1]*d[0])/den];};
+  for(const A of rays){
+   for(const R of trusses){
+    if(R===A.t)continue;
+    for(let i=1;i<R.profile.length;i++){
+     const a=R.profile[i-1],b=R.profile[i],g=[b[0]-a[0],b[1]-a[1]],r=solve(A.e,A.dir,a,g);if(!r)continue;
+     const [d,v]=r;if(d<-.03||d>MAXT||v<-.01||v>1.01)continue;
+     const zR=a[2]+(b[2]-a[2])*v,zA=A.e[2]+A.slope*Math.max(d,0);
+     if(zA>zR+.05)continue;                                  // tail passes above the other truss
+     A.t.eaveHits[A.k].push({kind:'body',d:Math.max(d,0),r:R.id});
+    }
+   }
+   for(const B of rays){
+    if(B.t===A.t)continue;
+    const r=solve(A.e,A.dir,B.e,B.dir);if(!r)continue;
+    const [d1,d2]=r;if(d1<-.03||d2<-.03||d1>MAXT||d2>MAXT)continue;
+    if(Math.abs((A.e[2]+A.slope*Math.max(d1,0))-(B.e[2]+B.slope*Math.max(d2,0)))>.3)continue;   // different heights: no clash
+    A.t.eaveHits[A.k].push({kind:'tail',d:Math.max(d1,0),rd:Math.max(d2,0),rpf:B.pf,r:B.t.id});
+   }
+  }}
  return {trusses,base,unassigned,sourceAxisCount:source.axes.length,covered:new Set(trusses.flatMap(t=>t.sources)).size,counts:Object.fromEntries(Object.keys(typeColors).map(k=>[k,trusses.filter(t=>t.type===k).length]).filter(([,v])=>v)),inferred:hips.length};
 }
 
@@ -84,4 +167,22 @@ function profilePlanIntersection(aProf,bProf){
 }
 
 export function distanceToProfile(p,profile){let best=Infinity;for(let i=1;i<profile.length;i++){const a=profile[i-1],b=profile[i],ab=b.map((x,j)=>x-a[j]),den=ab.reduce((s,x)=>s+x*x,0),t=Math.max(0,Math.min(1,p.reduce((s,x,j)=>s+(x-a[j])*ab[j],0)/den));best=Math.min(best,len(p,mix(a,b,t)));}return best;}
-export function frameProfile(profile,base,panel=1.2){const top=[];for(let i=1;i<profile.length;i++){const a=profile[i-1],b=profile[i],n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/panel));if(i===1)top.push(a);for(let j=1;j<=n;j++)top.push(mix(a,b,j/n));}const bottom=top.map(p=>[p[0],p[1],base]),members=[];const add=(a,b,role)=>{if(len(a,b)>.01)members.push({a:[...a],b:[...b],role,length:len(a,b),section:role==='web'?[.045,.09]:[.045,.15]});};for(let i=0;i<top.length-1;i++){add(top[i],top[i+1],'top');add(bottom[i],bottom[i+1],'bottom');add(i%2?bottom[i]:top[i],i%2?top[i+1]:bottom[i+1],'web');}for(let i=0;i<top.length;i++)add(bottom[i],top[i],'web');return members;}
+export function frameProfile(profile,base,panel=1.2){
+ // Fabrication-style truss envelope. Top chord keeps the complete imported roof
+ // profile (including eave tails), but the bottom chord and webs exist only between
+ // the two heel intersections where the top-chord centreline crosses the BC level.
+ const top=[];for(let i=1;i<profile.length;i++){const a=profile[i-1],b=profile[i],n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/panel));if(i===1)top.push([...a]);for(let j=1;j<=n;j++)top.push(mix(a,b,j/n));}
+ const crossings=[];for(let i=1;i<profile.length;i++){const a=profile[i-1],b=profile[i],da=a[2]-base,db=b[2]-base;if(Math.abs(da)<1e-7)crossings.push([...a]);if(da*db<0||Math.abs(db)<1e-7){const den=b[2]-a[2];if(Math.abs(den)>1e-9){const t=(base-a[2])/den;if(t>=0&&t<=1)crossings.push(mix(a,b,t));}}}
+ const uniq=[];for(const p of crossings)if(!uniq.some(q=>len(p,q)<.005))uniq.push(p);
+ let h0=uniq[0]||[...top[0]],h1=uniq.at(-1)||[...top.at(-1)];
+ const axis=[profile.at(-1)[0]-profile[0][0],profile.at(-1)[1]-profile[0][1]],AL=Math.hypot(...axis)||1,u=axis.map(x=>x/AL),sc=p=>(p[0]-profile[0][0])*u[0]+(p[1]-profile[0][1])*u[1];if(sc(h0)>sc(h1))[h0,h1]=[h1,h0];const s0=sc(h0),s1=sc(h1);
+ const inner=[h0,...top.filter(p=>sc(p)>s0+.005&&sc(p)<s1-.005),h1].sort((a,b)=>sc(a)-sc(b));
+ const members=[],add=(a,b,role)=>{if(len(a,b)>.01)members.push({a:[...a],b:[...b],role,length:len(a,b),section:role==='web'?[.045,.09]:[.045,.15]});};
+ // TC is the controlling roof envelope, including intentional eave overhangs.
+ for(let i=0;i<top.length-1;i++)add(top[i],top[i+1],'top');
+ const bottom=inner.map(p=>[p[0],p[1],base]);for(let i=0;i<bottom.length-1;i++)add(bottom[i],bottom[i+1],'bottom');
+ // Webs are infill between the two chord envelopes. No web is generated outside a heel.
+ for(let i=0;i<inner.length;i++)add(bottom[i],inner[i],'web');
+ for(let i=0;i<inner.length-1;i++)add(i%2?bottom[i]:inner[i],i%2?inner[i+1]:bottom[i+1],'web');
+ return members;
+}

@@ -1,0 +1,8 @@
+CadTech EWP Product + Service Coordination V5
+- Retains all V4 roof/truss, wall, whole-building and EWP floor features.
+- Adds EWP product-library framework with explicit validated/unvalidated state.
+- Adds member-level span, bearing and hole-rule check records.
+- Adds service/hole coordination engine for penetrations crossing I-joist members.
+- Adds Product Checks CSV and Service Checks CSV exports.
+- Generic bundled product records are geometry-only and do not provide structural capacities.
+- PASS/FAIL is only enabled when a validated product dataset contains the required limits/rules; otherwise DESIGN REQUIRED is preserved.

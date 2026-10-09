@@ -1,0 +1,8 @@
+CadTech EWP CAD Floor Framing Editor V7
+- Built on EWP Graphical 3D Editor V6.
+- Adds direct plan selection and perpendicular drag movement of EWP members.
+- Adds/deletes I-joists and EWP beams.
+- Adds rectangular floor openings and manual LVL support lines.
+- Regenerates coordinated opening cuts, headers/trimmers, support records and V6 physical 3D records for the affected floor.
+- Retains roof/truss, wall, whole-building, EWP product/service coordination and previous EWP exports.
+- Engineering capacities remain DESIGN REQUIRED without validated manufacturer product data.

@@ -114,3 +114,10 @@ LINKED AUTO-REGENERATION EDITION
 - Roof support/reaction paths, dependency graph, clash/QA, hardware and service checks are refreshed after edits.
 - Regeneration revisions/history can be exported to CSV.
 - This is dependency/geometry coordination, not a substitute for validated structural design or manufacturer capacity data.
+
+
+V9.7: exact face-to-face truss joints at ridge, heels and web seats. See TRUSS_JOINT_FIX_V9_7.txt
+
+- V9.9.4: Wood take-off (header button, CSV cut list / summary, PDF page) - see TRUSS_JOINT_FIX_V9_9.txt
+- V9.9.5: Design Report truss drawings in shop-drawing style (plates, dimension strings, marks, cut-angle schedule)
+- V9.9.8: Auto-design (sizes, plies, jack loads on girders, bearings, hold-down/plate requirements, bracing) with PASS / FAIL

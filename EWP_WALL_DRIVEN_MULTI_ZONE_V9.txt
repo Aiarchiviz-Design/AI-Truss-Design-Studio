@@ -1,0 +1,10 @@
+CadTech EWP V9 — Outer + Inner Wall Driven Multi-Zone Floor Framing
+
+- Exterior/outer walls define the floor envelope and perimeter supports.
+- Interior walls are recognized separately and treated as candidate bearing/support lines.
+- Layers containing NON-BEARING, NONBEARING, PARTITION or NBR are not automatically used as bearings.
+- Wall/support geometry divides the floor into framing zones.
+- Joist direction is selected from support-to-support zone spans unless manually overridden.
+- Wall-zone CSV records support boundaries and review status.
+- Interior bearing classification remains REVIEW until confirmed by project structural information.
+- Manufacturer-specific EWP capacities remain DESIGN REQUIRED without validated product data.

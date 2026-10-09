@@ -2,7 +2,8 @@
 const FT=.3048, PSF=47.88025898, KIP=4.448221615;
 export const EWP_TYPES={
  'I-Joist 9-1/2':{depthIn:9.5,weightPlf:2.2},'I-Joist 11-7/8':{depthIn:11.875,weightPlf:2.5},'I-Joist 14':{depthIn:14,weightPlf:2.9},'I-Joist 16':{depthIn:16,weightPlf:3.2},
- 'LVL 1-3/4x9-1/2':{depthIn:9.5,widthIn:1.75,weightPlf:3.8},'LVL 1-3/4x11-7/8':{depthIn:11.875,widthIn:1.75,weightPlf:4.7},'LVL 1-3/4x14':{depthIn:14,widthIn:1.75,weightPlf:5.5},'LVL 1-3/4x16':{depthIn:16,widthIn:1.75,weightPlf:6.3},'LVL 1-3/4x18':{depthIn:18,widthIn:1.75,weightPlf:7.1}
+ 'LVL 1-3/4x9-1/2':{depthIn:9.5,widthIn:1.75,weightPlf:3.8},'LVL 1-3/4x11-7/8':{depthIn:11.875,widthIn:1.75,weightPlf:4.7},'LVL 1-3/4x14':{depthIn:14,widthIn:1.75,weightPlf:5.5},'LVL 1-3/4x16':{depthIn:16,widthIn:1.75,weightPlf:6.3},'LVL 1-3/4x18':{depthIn:18,widthIn:1.75,weightPlf:7.1},
+ 'LSL 1-3/4x11-7/8':{depthIn:11.875,widthIn:1.75,weightPlf:4.8},'PSL 3-1/2x11-7/8':{depthIn:11.875,widthIn:3.5,weightPlf:9.6},'Glulam 3-1/8x12':{depthIn:12,widthIn:3.125,weightPlf:8.5},'Rim Board 1-1/8x11-7/8':{depthIn:11.875,widthIn:1.125,weightPlf:3.2}
 };
 const n=v=>Number(v)||0, round=v=>Math.round(v*1000)/1000;
 export function buildWholeBuilding(o={}){

@@ -1,0 +1,22 @@
+CadTech Truss Joint Fix V9.8  (overhang alignment + deep-rafter heels)
+======================================================================
+Point 1 - some Common / Girder trusses still had unfixed heel connections
+  Cause: the heel stub only exists in the clear space between the bottom-chord top face and the rafter underside.
+  After "Analyze", Common/Girder trusses get deep top chords (2x10 / 2x12). With the 250 mm heel that clear
+  space shrinks to a sliver (~75 mm at 2x10, nothing at 2x12) and the old code flipped between two different joint
+  modes at an arbitrary depth, leaving a short "hook" stub that did not seat on the rafter.
+  Fix (app/connection-geometry.js): if the clear space is under 100 mm the stub is dropped and the bottom chord is
+  sawn flush to the rafter underside (classic heel). Otherwise the seated stub from V9.7 is unchanged.
+  Slivers (< 50 mm mean length) left between two faces are no longer drawn as timbers.
+  Note: a heel with less than 100 mm clear is now always a sawn heel. To keep a stub on a deep rafter, raise the Heel depth.
+
+Point 2 - top of the top chord must match the top of the overhang
+  Cause: Analyze resized the 'top' members but never the 'overhang' member, so the overhang stayed 2x4 while the
+  rafter became e.g. 2x6. Both are centred on the same line, so the overhang top sat lower (25 mm step for 2x6).
+  Fix: (a) advanced-ui.js - overhang takes the top-chord section after analysis;
+       (b) connection-geometry.js - the overhang solid always takes the depth and thickness of the top chord it
+           continues, so existing / edited models are corrected too. Top faces are now one continuous line.
+
+Tests: node app/test-joint-solids-v98.mjs (new). test-heel-joints.mjs now uses a 300 mm heel for its 150 mm rafter.
+Cache-busting query strings bumped (connection-geometry v12, advanced-ui v5) so the browser loads the new code.
+Geometry only - not connector-plate design.

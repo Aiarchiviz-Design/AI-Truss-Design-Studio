@@ -1,0 +1,9 @@
+CadTech EWP Production Coordination V4
+- Retains roof/truss, wall, whole-building and EWP V3 features.
+- Rebuilds coordinated EWP floor framing around openings.
+- Adds preliminary tributary floor load/reaction demand records (default 15 psf dead + 40 psf live in V4 engine API).
+- Adds bearing-demand records without inventing manufacturer capacities.
+- Adds hanger/trimmer/blocking accessory demand records.
+- Adds EWP geometry coordination QA.
+- Adds EWP take-off and reaction-demand CSV exports.
+- Manufacturer/product span, bearing, hole, hanger and connection capacities remain DESIGN REQUIRED.
