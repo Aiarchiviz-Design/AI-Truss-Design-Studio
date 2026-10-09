@@ -20,6 +20,8 @@ V9.5 REFERENCE CONNECTION CORRECTION
 
 ## Installation and Workflow:
 
+Watch this video https://www.youtube.com/watch?v=kB9oWMouudU
+
 install Python 3.xx version, 
 
 Then Download code and Double-click Start_CadTech.bat (Windows) The app opens in your browser. Keep the terminal window open.
@@ -35,3 +37,4 @@ Inspect: switch between Plan, Front, Side, Split and 3D views, and use Find trus
 Analyze: enter your loads, click Analyze all trusses, then run auto-design. Review every PASS or FAIL and every DESIGN REQUIRED item.
 
 Export: use CadTech truss design PDF to Truss Report and Wood take-off
+
