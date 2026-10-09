@@ -18,7 +18,7 @@ V9.5 REFERENCE CONNECTION CORRECTION
 - Free top-chord eave tails remain untouched.
 
 
-Workflow in short:
+## Installation and Workflow:
 
 install Python 3.xx version, 
 
