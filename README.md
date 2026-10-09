@@ -18,13 +18,20 @@ V9.5 REFERENCE CONNECTION CORRECTION
 - Free top-chord eave tails remain untouched.
 
 
-The workflow in short:
+Workflow in short:
 
 install Python 3.xx version, 
+
 Then double-click Start_CadTech.bat (Windows) The app opens in your browser. Keep the terminal window open.
+
 Import: load a DXF, IFC or OBJ roof. For DXF, put the roof lines on one layer and the truss center lines on a layer named exactly TRUSSES. Try the files in examples/ first.
+
 Set parameters: choose the layers, CAD units and roof angle, plus the heel drop, panel length and overhang. Click Rebuild CAD roof after any change.
+
 Generate: click Generate complete roof to build the trusses.
+
 Inspect: switch between Plan, Front, Side, Split and 3D views, and use Find truss and Isolate to look at individual trusses.
+
 Analyze: enter your loads, click Analyze all trusses, then run auto-design. Review every PASS or FAIL and every DESIGN REQUIRED item.
+
 Export: use CadTech truss design PDF to Truss Report and Wood take-off
