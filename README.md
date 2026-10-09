@@ -22,7 +22,7 @@ V9.5 REFERENCE CONNECTION CORRECTION
 
 install Python 3.xx version, 
 
-Then double-click Start_CadTech.bat (Windows) The app opens in your browser. Keep the terminal window open.
+Then Download code and Double-click Start_CadTech.bat (Windows) The app opens in your browser. Keep the terminal window open.
 
 Import: load a DXF, IFC or OBJ roof. For DXF, put the roof lines on one layer and the truss center lines on a layer named exactly TRUSSES. Try the files in examples/ first.
 
